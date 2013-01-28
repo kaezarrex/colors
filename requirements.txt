@@ -1,0 +1,3 @@
+Flask==0.9
+pymongo==2.3
+https://github.com/generictjohnson/verify/archive/master.tar.gz

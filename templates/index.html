@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% set title="Home" %}
+
+{% block scripts %}
+<script src="/static/js/index.js"></script>
+{% endblock %}
+
+{% block stylesheets %}
+<link rel="stylesheet" href="/static/css/index.css">
+{% endblock %}
+
+{% block main_content %}
+<div class="navbar navbar-fixed-top">
+    <div class="navbar-inner">
+        <div class="container">
+            <a class="brand" href="#">Colors</a>
+        </div>
+    </div>
+</div>
+<div class="container">
+    <div class="row">
+        <div class="span12">
+            <input type="text" pattern="{{ COLOR_PATTERN }}" name="color" />
+            <button id="add-block-button" class="btn"><i class="icon-plus"></i></button>
+        </div>
+        <div class="span12">
+            <hr>
+        </div>
+        <div id="blocks" class="span12">
+        </div>
+    </div>
+    <hr>
+    <footer></footer>
+</div>
+{% endblock %}            

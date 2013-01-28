@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+    <head>
+        <title>{{ title|default('GIVE ME A TITLE') }} - Colors</title>
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+        {% block scripts %}{% endblock %}
+        
+        <link rel="stylesheet" href="/static/bootstrap/css/bootstrap.css">
+        <link rel="stylesheet" href="/static/font-awesome/css/font-awesome.css">
+        <link rel="stylesheet" href="/static/css/main.css">
+        {% block stylesheets %}{% endblock %}
+
+    </head>
+    <body>
+    {% block main_content %}{% endblock %}            
+    {% block sub_footer_content %}{% endblock %}
+    </body>
+</html>
+
