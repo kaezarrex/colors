@@ -21,15 +21,17 @@
 <div class="container">
     <div class="row">
         <div class="span12">
-            <input type="text" pattern="{{ COLOR_PATTERN }}" name="color" />
-            <button id="add-block-button" class="btn"><i class="icon-plus"></i></button>
-        </div>
-        <div class="span12">
-            <hr>
-        </div>
-        <div id="blocks" class="span12">
+            <form class="form-inline">
+                <input type="text" pattern="{{ COLOR_PATTERN }}" name="color" />
+                <button id="add-block-button" class="btn"><i class="icon-plus"></i></button>
+            </form>
         </div>
     </div>
+</div>
+<div id="blocks" class="container">
+    <hr>
+</div>
+<div class="container">
     <hr>
     <footer></footer>
 </div>

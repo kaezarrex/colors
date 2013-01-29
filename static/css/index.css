@@ -2,3 +2,7 @@
 #blocks {
     min-height: 100px;
 }
+
+.block-row {
+    margin-top: 30px;
+}

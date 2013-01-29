@@ -1,3 +1,4 @@
+import random
 import re
 
 from flask import jsonify, request
@@ -13,7 +14,10 @@ def blocks():
     if 'GET' == request.method:
         blocks = []
         for block in api.blocks.all():
-            blocks.append(block)
+            blocks.append({
+                'id': str(block['_id']),
+                'color': block['color']
+            })
 
         return jsonify({
             'success': True,
@@ -21,15 +25,17 @@ def blocks():
         })
 
     elif 'POST' == request.method:
-        color = request.form.get('color')
-
         result = {
             'success': False,
             'errors': []
         }
 
+        color = request.form.get('color')
         if color is None or 0 == len(color):
-            color = 'AACCEE'
+            r = random.randint(0, 255)
+            g = random.randint(0, 255)
+            b = random.randint(0, 255)
+            color = ''.join('%02x' % c for c in (r, g, b))
 
         match = COLOR.match(color)
 
