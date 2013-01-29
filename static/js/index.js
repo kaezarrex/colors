@@ -1,12 +1,27 @@
 ;(function($) {
 
     $(document).ready(function() {
-        
-        var NUM_COLUMNS = 12,
-            BLOCK_SPAN = 12 / NUM_COLUMNS,
-            BLOCK_DIMENSION = 70 * BLOCK_SPAN + 30 * (BLOCK_SPAN - 1),
-            BLOCK_BORDER_RADIUS = BLOCK_SPAN * 5,
-            BLOCK_BOX_SHADOW_RADIUS = BLOCK_SPAN * 10;
+
+        var widths = [1, 2, 3, 4, 6, 12],
+            zoomLevel = widths.length - 1,
+            viewParams = {};
+
+        function setViewParams() {
+            viewParams.columns = widths[zoomLevel];
+            viewParams.blockSpan = 12 / viewParams.columns;
+            viewParams.blockDimension = 100 * viewParams.blockSpan - 30;
+            viewParams.borderRadius = viewParams.blockSpan * 5;
+            viewParams.boxShadowRadius = viewParams.blockSpan * 10;
+        }
+
+        function buildBlock(block) {
+            return '<div class="span' + viewParams.blockSpan + ' block" ' + 
+                        'style="height:' + viewParams.blockDimension + 'px;' + 
+                               'border-radius:' + viewParams.borderRadius + 'px;' + 
+                               'background:#' + block.color + ';' + 
+                               'box-shadow:0 0 ' + viewParams.boxShadowRadius + 'px #' + block.color + ';">' + 
+                    '</div>';
+        }
 
         function getBlocks() {
             $.get('/blocks', function(data) {
@@ -17,18 +32,18 @@
                     for (i = 0; i < data.blocks.length; i++) {
                         block = data.blocks[i];
 
-                        if (i % NUM_COLUMNS === 0) {
+                        if (i % viewParams.columns === 0) {
                             html += '<div class="row block-row">';
                         } 
 
-                        html += '<div class="span' + BLOCK_SPAN + ' block" style="height:' + BLOCK_DIMENSION + 'px;border-radius:' + BLOCK_BORDER_RADIUS + 'px;background:#' + block.color + ';box-shadow:0 0 ' + BLOCK_BOX_SHADOW_RADIUS + 'px #' + block.color + ';"></div>';
+                        html += buildBlock(block);
                         
-                        if ((i+1) % NUM_COLUMNS === 0) {
+                        if ((i+1) % viewParams.columns === 0) {
                             html += '</div>';
                         }
                     }
 
-                    if ((i+1) % NUM_COLUMNS !== 0) {
+                    if ((i+1) % viewParams.columns !== 0) {
                         html += '</div>';
                     }
 
@@ -50,12 +65,31 @@
             });
         }
 
+        setViewParams();
+
         $('#add-block-button').click(function(e) {
-            var color = $('input[name="color"]').val()
+            var $input = $('input[name="color"]'),
+                color = $input.val();
 
+            $input.val('');
             addBlock(color);
-
             return false;
+        });
+
+        $('#zoom-out').click(function(e) {
+            if (zoomLevel < widths.length - 1) {
+                zoomLevel++;
+                setViewParams();
+                getBlocks();
+            }
+        });
+
+        $('#zoom-in').click(function(e) {
+            if (zoomLevel > 0) {
+                zoomLevel--;
+                setViewParams();
+                getBlocks();
+            }
         });
 
         getBlocks();
