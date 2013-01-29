@@ -1,10 +1,11 @@
-;(function($) {
+;(function($, socketServerPort) {
 
     $(document).ready(function() {
 
         var widths = [1, 2, 3, 4, 6, 12],
             zoomLevel = widths.length - 1,
-            viewParams = {};
+            viewParams = {},
+            ws;
 
         function setViewParams() {
             viewParams.columns = widths[zoomLevel];
@@ -35,9 +36,7 @@
                         if (i % viewParams.columns === 0) {
                             html += '<div class="row block-row">';
                         } 
-
                         html += buildBlock(block);
-                        
                         if ((i+1) % viewParams.columns === 0) {
                             html += '</div>';
                         }
@@ -47,6 +46,7 @@
                         html += '</div>';
                     }
 
+                    // Add the blocks to the DOM
                     $('#blocks').html(html);
 
                 } else {
@@ -65,6 +65,7 @@
             });
         }
 
+        // The page initialization and event-binding
         setViewParams();
 
         $('#add-block-button').click(function(e) {
@@ -92,7 +93,16 @@
             }
         });
 
+        // Retrieve and display the blocks
         getBlocks();
+
+        // Obtain a connection to the socket server
+        ws = new WebSocket('ws://' + window.location.hostname + ':' + socketServerPort);
+
+        ws.onopen = function() {
+            console.log('Successfully created WebSocket connection.');
+        }
     });
 
-})(jQuery);
+})(jQuery, SOCKETSERVER_PORT);
+

@@ -1,0 +1,9 @@
+#!/usr/bin/env node
+
+var ws = require('ws'),
+    server = new ws.Server({port: 8001});
+
+server.on('connection', function(socket) {
+    console.log('Received a connection!');
+    console.dir(socket);
+});
