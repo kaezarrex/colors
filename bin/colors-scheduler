@@ -1,0 +1,85 @@
+#!/usr/bin/env python
+
+import argparse
+import heapq
+import logging
+import time
+
+from colors.db import ColorsAPI
+from colors.mq import MQ
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--debug', action='store_true')
+args = parser.parse_args()
+
+class ColorsScheduler(object):
+
+    def __init__(self):
+        '''Create the RequestScheduler.'''
+
+        self.mq = MQ()
+        self.running = False
+
+    def run(self):
+        '''Enter an endless loop of scheduling requests to be made.'''
+
+        api = ColorsAPI()
+
+        # Store the sleep times for blocks that have an update frequency set
+        intervals = {}
+        for block in api.blocks.all():
+            frequency = block.get('frequency')
+            if frequency is not None:
+                intervals[block['_id']] = frequency
+
+        logging.info('%d blocks have an update frequency', len(intervals))
+
+        # Build up the priority queue
+        block_queue = list()
+        for _id, frequency in intervals.iteritems():
+            heapq.heappush(block_queue, (time.time() + frequency, _id))
+
+        self.running = True
+        logging.info('Entering main schedule loop at %f', time.time())
+        while self.running:
+
+            if not block_queue:
+                logging.debug('No items to schedule.')
+                time.sleep(5)
+                continue
+
+            logging.debug('Scheduled changes: %r', block_queue)
+            
+            # Get the next block to queue up
+            target_time, block_id = heapq.heappop(block_queue)
+            logging.debug('Next block id: %s', block_id)
+
+            # Compute the sleep time
+            sleep_time = max(0, target_time - time.time())
+            logging.debug('Sleeping for %f seconds', sleep_time)
+            time.sleep(sleep_time)
+
+            # Schedule another block change for this block
+            interval = intervals[block_id]
+            next_target_time = time.time() + interval
+            logging.debug('Scheduling next block change for %f', next_target_time)
+            heapq.heappush(block_queue, (next_target_time, block_id))
+
+            # Put the current block change on the queue
+            logging.debug('Queueing up block %s', block_id)
+            self.mq.queue_color_change(block_id)
+
+        logging.info('Stopped scheduling requests.')
+            
+    def stop(self):
+        '''Stop scheduling requests.'''
+
+        self.running = False
+
+if args.debug:
+    logging.basicConfig(level=logging.DEBUG)
+else:
+    logging.basicConfig(level=logging.INFO)
+
+ColorsScheduler().run()
+

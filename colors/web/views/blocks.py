@@ -3,6 +3,7 @@ import re
 
 from flask import jsonify, request
 
+from colors.utils import random_color
 from colors.web import api, app
 
 COLOR_PATTERN = r'[a-fA-F0-9]{6}'
@@ -32,10 +33,7 @@ def blocks():
 
         color = request.form.get('color')
         if color is None or 0 == len(color):
-            r = random.randint(0, 255)
-            g = random.randint(0, 255)
-            b = random.randint(0, 255)
-            color = ''.join('%02x' % c for c in (r, g, b))
+            color = random_color()
 
         match = COLOR.match(color)
 

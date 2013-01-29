@@ -1,9 +1,51 @@
 #!/usr/bin/env node
 
-var ws = require('ws'),
-    server = new ws.Server({port: 8001});
+var amqp = require('amqp'),
+    connection = amqp.createConnection(),
+    exchange,
+    ws = require('ws'),
+    server = new ws.Server({port: 8001}),
+    sockets = {},
+    socketKey = 0;
 
+function broadcast(message) {
+    console.log('Broadcasting message: ' + message);
+    for (var key in sockets) {
+        if (sockets.hasOwnProperty(key)) {
+            sockets[key].send(message);
+        }
+    }
+}
+
+// Establish a connection to RabbitMQ
+connection.addListener('ready', function() {
+    console.log('The RabbitMQ connection is ready.');
+    connection.exchange('colors', {passive: true}, function(exchange) {
+        console.log('Created connection to the exchange.');
+        
+        connection.queue('', {exclusive:true}, function(queue) {
+            console.log('The queue is open.');
+
+            // Now bind to the notifications topic so they can be forwarded to 
+            // browsers
+            queue.bind('colors', 'colors.notifications');
+            queue.subscribe(function(message, headers, deliveryInfo) {
+                broadcast(message.data);
+            });
+        });
+    });
+});
 server.on('connection', function(socket) {
-    console.log('Received a connection!');
-    console.dir(socket);
+    console.log('Receved socket connection ' + socketKey + '!');
+
+    // Upon connection, instruct how to remove the socket
+    (function(key, socket) {
+        sockets[key] = socket;
+        socket.on('close', function() {
+            delete sockets[key];
+            console.log('Removed socket ' + key + ' from the list of sockets');
+        });
+    })(socketKey, socket);
+
+    socketKey++;
 });

@@ -15,12 +15,17 @@
             viewParams.boxShadowRadius = viewParams.blockSpan * 10;
         }
 
+        function boxShadow(color) {
+            return '0 0 ' + viewParams.boxShadowRadius + 'px #' + color;
+        }
+
         function buildBlock(block) {
-            return '<div class="span' + viewParams.blockSpan + ' block" ' + 
+            return '<div data-block-id="' + block.id + '" ' + 
+                        'class="span' + viewParams.blockSpan + ' block" ' + 
                         'style="height:' + viewParams.blockDimension + 'px;' + 
                                'border-radius:' + viewParams.borderRadius + 'px;' + 
                                'background:#' + block.color + ';' + 
-                               'box-shadow:0 0 ' + viewParams.boxShadowRadius + 'px #' + block.color + ';">' + 
+                               'box-shadow:' + boxShadow(block.color) + ';">' + 
                     '</div>';
         }
 
@@ -65,6 +70,13 @@
             });
         }
 
+        function changeBlockColor(blockId, color) {
+            $('div').find('[data-block-id="' + blockId + '"]').css({
+                'background': '#'+color,
+                'box-shadow': boxShadow(color)
+            });
+        }
+
         // The page initialization and event-binding
         setViewParams();
 
@@ -101,6 +113,23 @@
 
         ws.onopen = function() {
             console.log('Successfully created WebSocket connection.');
+        }
+
+        ws.onmessage = function(message) {
+            console.log('Received a socket message');
+            console.dir(message);
+
+            // Route the message
+            var data = JSON.parse(message.data);
+            if ('change-color' === data.type) {
+                blockId = data.block_id;
+                color = data.color;
+
+                changeBlockColor(blockId, color);
+            } else {
+                console.error('Unrecognized message type: "' + data.type + '"');
+            }
+
         }
     });
 

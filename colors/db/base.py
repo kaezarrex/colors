@@ -64,3 +64,21 @@ class APIBase(object):
                 (self.COLLECTION_NAME, _id))
 
         return document
+
+    def update(self, _id, **kwargs):
+        '''Update a document.
+
+        @param _id: bson.objectid.ObjectId
+            The id of the document to update.
+        @param kwargs: key/value pairs
+            the key/value pairs to set'''
+
+        document = self.get(_id)
+
+        if document is None:
+            raise Exception('Document with id %s does not exist' % _id)
+
+        for k,v in kwargs.iteritems():
+            document[k] = v
+
+        self.collection.save(document)
