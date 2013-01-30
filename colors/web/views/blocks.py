@@ -4,21 +4,40 @@ import re
 from flask import jsonify, request
 
 from colors.utils import random_color
-from colors.web import api, app
+
+from colors.web import app, controller
 
 COLOR_PATTERN = r'[a-fA-F0-9]{6}'
 COLOR = re.compile(COLOR_PATTERN)
 
+def format_block(block):
+    '''Return a block formatted for JSON serialization.
+
+    @param block: dict
+        A block from MongoDB.'''
+
+    return {
+        'id': str(block['_id']),
+        'color': block['color']
+    }
+
+
 @app.route('/blocks', methods=('GET', 'POST',))
-def blocks():
+@app.route('/blocks/<block_id>', methods=('GET',))
+def blocks(block_id=None):
 
     if 'GET' == request.method:
         blocks = []
-        for block in api.blocks.all():
-            blocks.append({
-                'id': str(block['_id']),
-                'color': block['color']
-            })
+        if block_id is not None:
+            block = controller.api.blocks.get(ObjectId(block_id))
+
+            if block is None:
+                return 'Block does not exists', 404
+
+            blocks.append(format_block(block))
+
+        for block in controller.api.blocks.all():
+            blocks.append(format_block(block))
 
         return jsonify({
             'success': True,
@@ -40,7 +59,8 @@ def blocks():
         if match is None:
             result['errors'].append('Invalid color: "%s"' % color)
         else:
-            _id = api.blocks.create(color)
+            frequency = 30 * random.random()
+            _id = controller.create_block(color, frequency=frequency)
 
             result['success'] = True
             result['id'] = str(_id)

@@ -52,7 +52,22 @@ class MQ(object):
             body=json.dumps(task)
         )
 
-    def publish_color_change(self, block_id, color):
+    def publish_notification(self, notification_type, notification):
+        '''Publish a notification.
+
+        @param notification_type: unicode
+            The type of notification to publish
+        @param notification: dict
+            Additional data to pass along.'''
+
+        notification['type'] = notification_type
+        self.channel.basic_publish(
+            exchange=EXCHANGE,
+            routing_key=NOTIFICATION_ROUTING_KEY,
+            body=json.dumps(notification)
+        )
+
+    def publish_color_changed(self, block_id, color):
         '''Publish that a block's color has successfully been changed.
 
         @param block_id: bson.ObjectId
@@ -61,13 +76,34 @@ class MQ(object):
             The new 6 hex digit color.'''
 
         notification = {
-            'type': 'change-color',
             'block_id': str(block_id),
             'color': color,
         }
 
-        self.channel.basic_publish(
-            exchange=EXCHANGE,
-            routing_key=NOTIFICATION_ROUTING_KEY,
-            body=json.dumps(notification)
-        )
+        self.publish_notification('change-color', notification)
+
+    def publish_block_created(self, block_id):
+        '''Publish that a block has been created.
+
+        @param block_id: bson.ObjectId
+            The id of the added block.'''
+
+        notification = {
+            'block_id': str(block_id),
+        }
+
+        self.publish_notification('block-created', notification)
+
+
+    def publish_block_deleted(self, block_id):
+        '''Publish that a block has been deleted.
+
+        @param block_id: bson.ObjectId
+            The id of the removed block.'''
+
+        notification = {
+            'block_id': str(block_id),
+        }
+
+        self.publish_notification('block-deleted', notification)
+

@@ -63,7 +63,7 @@
         function addBlock(color) {
             $.post('/blocks', {color: color}, function(data) {
                 if (data.success) {
-                    getBlocks();
+                    console.log('Success creating new block. Id is ' + data.id);
                 } else {
                     console.error(data.errors);
                 }
@@ -126,6 +126,13 @@
                 color = data.color;
 
                 changeBlockColor(blockId, color);
+
+            } else if ('block-created' === data.type) {
+                getBlocks();
+
+            } else if ('block-deleted' === data.type) {
+                getBlocks();
+
             } else {
                 console.error('Unrecognized message type: "' + data.type + '"');
             }

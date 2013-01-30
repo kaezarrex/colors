@@ -5,8 +5,7 @@ import heapq
 import logging
 import time
 
-from colors.db import ColorsAPI
-from colors.mq import MQ
+from colors.controller import ColorsController
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--debug', action='store_true')
@@ -17,17 +16,15 @@ class ColorsScheduler(object):
     def __init__(self):
         '''Create the RequestScheduler.'''
 
-        self.mq = MQ()
+        self.controller = ColorsController()
         self.running = False
 
     def run(self):
         '''Enter an endless loop of scheduling requests to be made.'''
 
-        api = ColorsAPI()
-
         # Store the sleep times for blocks that have an update frequency set
         intervals = {}
-        for block in api.blocks.all():
+        for block in self.controller.api.blocks.all():
             frequency = block.get('frequency')
             if frequency is not None:
                 intervals[block['_id']] = frequency
@@ -67,7 +64,7 @@ class ColorsScheduler(object):
 
             # Put the current block change on the queue
             logging.debug('Queueing up block %s', block_id)
-            self.mq.queue_color_change(block_id)
+            self.controller.mq.queue_color_change(block_id)
 
         logging.info('Stopped scheduling requests.')
             

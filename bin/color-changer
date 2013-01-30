@@ -6,8 +6,8 @@ import logging
 
 from bson.objectid import ObjectId
 
-from colors.db import ColorsAPI
-from colors.mq import TASKS_QUEUE, MQ
+from colors.controller import ColorsController
+from colors.mq import TASKS_QUEUE
 from colors.utils import random_color
 
 parser = argparse.ArgumentParser()
@@ -19,7 +19,7 @@ if args.debug:
 else:
     logging.basicConfig(level=logging.INFO)
 
-api = ColorsAPI()
+controller = ColorsController()
 
 def process_block(ch, method, properties, body):
     '''Process a block task that has been queued up.'''
@@ -28,23 +28,17 @@ def process_block(ch, method, properties, body):
 
     if 'change-color' == task['type']:
         block_id = ObjectId(task['block_id'])
-
         color = random_color()
 
         logging.info('Changing color of block %s to %s', block_id, color)
-        try:
-            api.blocks.update(block_id, color=color)
-            mq.publish_color_change(block_id, color)
-        except Exception:
-            pass
+        controller.change_block_color(block_id, color)
 
         ch.basic_ack(delivery_tag=method.delivery_tag)
         
     else:
         logging.warning('Unrecognized task type: %s', task['type'])
 
-mq = MQ()
-channel = mq.get_channel()
+channel = controller.mq.get_channel()
 channel.basic_consume(process_block, queue=TASKS_QUEUE, no_ack=False)
 channel.start_consuming()
 

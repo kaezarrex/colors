@@ -2,12 +2,10 @@ from os.path import abspath
 
 from flask import Flask
 
-from colors.db import ColorsAPI
-from colors.mq import MQ
+from colors.controller import ColorsController
 
 app = None
-api = None
-mq = None
+controller = None
 
 def build_app(
     static_folder=None,
@@ -15,10 +13,9 @@ def build_app(
     template_folder=None,
     secret_key=None):
 
-    global api, app, mq
+    global app, controller
 
-    api = ColorsAPI()
-    mq = MQ()
+    controller = ColorsController()
 
     params = dict()
 

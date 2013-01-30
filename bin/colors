@@ -3,8 +3,6 @@
 import argparse
 import logging
 
-from colors.mq import MQ
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--debug', action='store_true')
 args = parser.parse_args()
@@ -13,7 +11,4 @@ if args.debug:
     logging.basicConfig(level=logging.DEBUG)
 else:
     logging.basicConfig(level=logging.INFO)
-
-q = MQ()
-
 
