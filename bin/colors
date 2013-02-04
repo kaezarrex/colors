@@ -2,9 +2,52 @@
 
 import argparse
 import logging
+import re
+
+from bson.objectid import ObjectId
+
+from colors.controller import ColorsController
+
+def color(string):
+    '''Validate the string defines a color.'''
+
+    if re.match(r'[a-fA-F0-9]{6}', string) is None:
+        raise argparse.ArgumentTypeError('Invalid color: %s' % string)
+
+    return string
+
+def list_blocks(controller, args):
+    '''List the blocks in the database.
+
+    @param controller: colors.controller.Controller
+        The controller with the connection to the database.'''
+
+    blocks = controller.api.blocks.all()
+
+    for block in blocks:
+        print str(block['_id']), block['color']
+
+def change_color(controller, args):
+    '''Change the color of a block.
+
+    @param controller: colors.controller.Controller
+        The controller with the connection to the database.'''
+
+    controller.change_block_color(args.block_id, args.color)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--debug', action='store_true')
+
+subparsers = parser.add_subparsers()
+
+list_parser = subparsers.add_parser('list')
+list_parser.set_defaults(fn=list_blocks)
+
+change_color_parser = subparsers.add_parser('change-color')
+change_color_parser.add_argument('block_id', type=ObjectId)
+change_color_parser.add_argument('color', type=color)
+change_color_parser.set_defaults(fn=change_color)
+
 args = parser.parse_args()
 
 if args.debug:
@@ -12,3 +55,5 @@ if args.debug:
 else:
     logging.basicConfig(level=logging.INFO)
 
+controller = ColorsController()
+args.fn(controller, args)
