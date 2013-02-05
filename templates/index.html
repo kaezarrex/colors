@@ -21,13 +21,9 @@
         </div>
     </div>
 </div>
-<div class="container">
+{#<div class="container">
     <div class="row">
         <div class="span4">
-            <form class="form-inline">
-                <input type="text" pattern="{{ COLOR_PATTERN }}" name="color" />
-                <button id="add-block-button" class="btn"><i class="icon-plus"></i></button>
-            </form>
         </div>
         <div class="span8">
             <div class="btn-group pull-right">
@@ -36,8 +32,45 @@
             </div>
         </div>
     </div>
-</div>
-<div id="blocks" class="container">
+</div>#}
+<div class="container">
+    <div class="row">
+        <div class="span3">
+            <form class="form-inline">
+                <legend>Add A Block</legend>
+                <input type="text" placeholder="RRGGBB" pattern="{{ COLOR_PATTERN }}" name="color" />
+                <button id="add-block-button" class="btn"><i class="icon-plus"></i></button>
+            </form>
+            <form class="form">
+                <legend>Edit Block</legend>
+                <div class="control-group">
+                    <div class="controls">
+                        <label class="range"> R
+                            <input type="range" min="0" max="255" name="r"/>
+                        </label>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <div class="controls">
+                        <label class="range"> G
+                            <input type="range" min="0" max="255" name="g"/>
+                        </label>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <div class="controls">
+                        <label class="range"> B
+                            <input type="range" min="0" max="255" name="b"/>
+                        </label>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="span9">
+            <div id="blocks">
+            </div>
+        </div>
+    </div>
     <hr>
 </div>
 <div class="container">

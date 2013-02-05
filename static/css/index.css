@@ -6,3 +6,11 @@
 .block-row {
     margin-top: 30px;
 }
+
+.block:hover {
+    cursor: pointer;
+}
+
+.block.selected {
+    box-shadow: 0 0 40px black;
+}

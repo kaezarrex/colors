@@ -2,14 +2,27 @@
 
     $(document).ready(function() {
 
-        var widths = [1, 2, 3, 4, 6, 12],
-            zoomLevel = widths.length - 1,
-            viewParams = {},
+        var viewParams = {},
+            blocks = {},
+            selectedBlock = null,
             ws;
 
+        function cutHex(h) {return (h.charAt(0)=="#") ? h.substring(1,7):h}
+        function hexToR(h) {return parseInt((cutHex(h)).substring(0,2),16)}
+        function hexToG(h) {return parseInt((cutHex(h)).substring(2,4),16)}
+        function hexToB(h) {return parseInt((cutHex(h)).substring(4,6),16)}
+        function decimalToHex(d) { 
+            var h = '';
+            if (d < 16) {
+                h += '0';
+            }
+
+            return h + d.toString(16);
+        }
+
         function setViewParams() {
-            viewParams.columns = widths[zoomLevel];
-            viewParams.blockSpan = 12 / viewParams.columns;
+            viewParams.columns = 9;
+            viewParams.blockSpan = 1;
             viewParams.blockDimension = 100 * viewParams.blockSpan - 30;
             viewParams.borderRadius = viewParams.blockSpan * 5;
             viewParams.boxShadowRadius = viewParams.blockSpan * 10;
@@ -24,9 +37,47 @@
                         'class="span' + viewParams.blockSpan + ' block" ' + 
                         'style="height:' + viewParams.blockDimension + 'px;' + 
                                'border-radius:' + viewParams.borderRadius + 'px;' + 
-                               'background:#' + block.color + ';' + 
-                               'box-shadow:' + boxShadow(block.color) + ';">' + 
+                               'background:#' + block.color + ';">' + 
                     '</div>';
+        }
+
+        function renderBlocks() {
+            var i = 0,
+                html = '',
+                id, block;
+
+            for (id in blocks) {
+                if (blocks.hasOwnProperty(id)) {
+                    block = blocks[id];
+
+                    if (i % viewParams.columns === 0) {
+                        html += '<div class="row block-row">';
+                    } 
+                    html += buildBlock(block);
+                    if ((i+1) % viewParams.columns === 0) {
+                        html += '</div>';
+                    }
+                    i++;
+                }
+            }
+
+            if ((i+1) % viewParams.columns !== 0) {
+                html += '</div>';
+            }
+
+            // Add the blocks to the DOM
+            $('#blocks').html(html);
+        }
+
+        function updateBlockColors(block) {
+            block.r = hexToR(block.color);
+            block.g = hexToG(block.color);
+            block.b = hexToB(block.color);
+        }
+
+        function addBlock(block) {
+            updateBlockColors(block);
+            blocks[block.id] = block;
         }
 
         function getBlocks() {
@@ -35,24 +86,11 @@
                 var html = '',
                     i, block;
                 if (data.success) {
+                    blocks = {};
                     for (i = 0; i < data.blocks.length; i++) {
-                        block = data.blocks[i];
-
-                        if (i % viewParams.columns === 0) {
-                            html += '<div class="row block-row">';
-                        } 
-                        html += buildBlock(block);
-                        if ((i+1) % viewParams.columns === 0) {
-                            html += '</div>';
-                        }
+                        addBlock(data.blocks[i]);
                     }
-
-                    if ((i+1) % viewParams.columns !== 0) {
-                        html += '</div>';
-                    }
-
-                    // Add the blocks to the DOM
-                    $('#blocks').html(html);
+                    renderBlocks();
 
                 } else {
                     console.error(data.errors);
@@ -60,7 +98,15 @@
             });
         }
 
-        function addBlock(color) {
+        function getBlock(blockId) {
+            $.get('/blocks/' + blockId, function(data) {
+                addBlock(data.blocks[0]);
+                renderBlocks();
+            })
+
+        }
+
+        function postBlock(color) {
             $.post('/blocks', {color: color}, function(data) {
                 if (data.success) {
                     console.log('Success creating new block. Id is ' + data.id);
@@ -70,10 +116,24 @@
             });
         }
 
+        function setSliders(block) {
+            $('input[name="r"]').val(block.r);
+            $('input[name="g"]').val(block.g);
+            $('input[name="b"]').val(block.b);
+        }
+
         function changeBlockColor(blockId, color) {
+            var block = blocks[blockId];
+
+            block.color = color;
+            updateBlockColors(blocks[blockId]);
+
+            if (block === selectedBlock) {
+                setSliders(block);
+            }
+
             $('div').find('[data-block-id="' + blockId + '"]').css({
-                'background': '#'+color,
-                'box-shadow': boxShadow(color)
+                'background': '#'+color
             });
         }
 
@@ -85,25 +145,45 @@
                 color = $input.val();
 
             $input.val('');
-            addBlock(color);
+            postBlock(color);
             return false;
         });
 
-        $('#zoom-out').click(function(e) {
-            if (zoomLevel < widths.length - 1) {
-                zoomLevel++;
-                setViewParams();
-                getBlocks();
+        $('#blocks').delegate('.block', 'click', function() {
+            var blockId = $(this).data('block-id'),
+                block = blocks[blockId];
+
+            if (selectedBlock !== null) {
+                $('.block[data-block-id="' + selectedBlock.id + '"]').removeClass('selected');
+                //$('.block').removeClass('selected');
             }
+
+            selectedBlock = block;
+
+            $(this).addClass('selected');
+            setSliders(block);
         });
 
-        $('#zoom-in').click(function(e) {
-            if (zoomLevel > 0) {
-                zoomLevel--;
-                setViewParams();
-                getBlocks();
+        $('input[type="range"]').change(function() {
+            var r,g,b, color;
+            if (selectedBlock !== null) {
+                r = parseInt($('input[name="r"]').val());
+                g = parseInt($('input[name="g"]').val());
+                b = parseInt($('input[name="b"]').val());
+
+                color = decimalToHex(r) + decimalToHex(g) + decimalToHex(b);
+
+                $.post('/blocks/' + selectedBlock.id + '/color', 
+                    {
+                        color: color
+                    },
+                    function(data) {
+                        if (data.success) {
+                            console.log('Success changing color');
+                        }
+                    })
             }
-        });
+        })
 
         // Retrieve and display the blocks
         getBlocks();
@@ -128,7 +208,7 @@
                 changeBlockColor(blockId, color);
 
             } else if ('block-created' === data.type) {
-                getBlocks();
+                getBlock(data.block_id);
 
             } else if ('block-deleted' === data.type) {
                 getBlocks();

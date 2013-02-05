@@ -31,7 +31,10 @@ def process_block(ch, method, properties, body):
         color = random_color()
 
         logging.info('Changing color of block %s to %s', block_id, color)
-        controller.change_block_color(block_id, color)
+        try:
+            controller.change_block_color(block_id, color)
+        except:
+            pass
 
         ch.basic_ack(delivery_tag=method.delivery_tag)
         
