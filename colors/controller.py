@@ -26,6 +26,15 @@ class ColorsController(object):
 
         return _id
 
+    def delete_block(self, block_id):
+        '''Delete the block with the given id.
+
+        @param block_id: bson.objectid.ObjectId
+            The id of the block to delete.'''
+
+        self.api.blocks.remove(block_id)
+        self.mq.publish_block_deleted(block_id)
+
     def change_block_color(self, block_id, color):
         '''Change a block color, then notify listeners on the message queue.
 

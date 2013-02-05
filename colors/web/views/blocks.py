@@ -75,6 +75,19 @@ def blocks(block_id=None):
 
         return jsonify(result)
 
+@app.route('/blocks/<block_id>/delete', methods=('POST',))
+def delete_block(block_id):
+    result = {
+        'success': False,
+        'errors': []
+    }
+    
+    controller.delete_block(ObjectId(block_id))
+
+    result['success'] = True
+
+    return jsonify(result)
+
 @app.route('/blocks/<block_id>/color', methods=('POST',))
 def change_color(block_id):
     result = {

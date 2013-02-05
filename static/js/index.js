@@ -80,6 +80,30 @@
             blocks[block.id] = block;
         }
 
+        function selectBlock(blockId) {
+            var block = blocks[blockId];
+
+            deselectBlock();
+
+            $('input[type="range"]').removeAttr('disabled');
+            $('#delete-block').removeAttr('disabled');
+
+            selectedBlock = block;
+
+            $('.block[data-block-id="' + blockId + '"]').addClass('selected');
+            setSliders(block);
+        }
+
+        function deselectBlock() {
+            if (selectedBlock !== null) {
+                $('.block[data-block-id="' + selectedBlock.id + '"]').removeClass('selected');
+            }
+            selectedBlock = null;
+
+            $('input[type="range"]').attr('disabled', 'disabled');
+            $('#delete-block').attr('disabled', 'disabled');
+        }
+
         function getBlocks() {
             $.get('/blocks', function(data) {
 
@@ -137,6 +161,28 @@
             });
         }
 
+        function deleteBlock(blockId) {
+            delete blocks[blockId];
+
+            if (selectedBlock !== null && selectedBlock.id === blockId) {
+                deselectBlock();
+            }
+
+            renderBlocks();
+        }
+
+        function postDeleteBlock() {
+            if (selectedBlock === null) {
+                return;
+            }
+
+            $.post('/blocks/' + selectedBlock.id + '/delete', function(data) {
+                if (data.success) {
+                    console.log('Successfully deleted block ' + selectedBlock.id);
+                }
+            });
+        }
+
         // The page initialization and event-binding
         setViewParams();
 
@@ -150,18 +196,13 @@
         });
 
         $('#blocks').delegate('.block', 'click', function() {
-            var blockId = $(this).data('block-id'),
-                block = blocks[blockId];
+            var blockId = $(this).data('block-id');
 
-            if (selectedBlock !== null) {
-                $('.block[data-block-id="' + selectedBlock.id + '"]').removeClass('selected');
-                //$('.block').removeClass('selected');
-            }
+            selectBlock(blockId);
+        });
 
-            selectedBlock = block;
-
-            $(this).addClass('selected');
-            setSliders(block);
+        $('#delete-block').click(function() {
+            postDeleteBlock();
         });
 
         $('input[type="range"]').change(function() {
@@ -211,7 +252,7 @@
                 getBlock(data.block_id);
 
             } else if ('block-deleted' === data.type) {
-                getBlocks();
+                deleteBlock(data.block_id);
 
             } else {
                 console.error('Unrecognized message type: "' + data.type + '"');

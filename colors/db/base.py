@@ -44,6 +44,14 @@ class APIBase(object):
 
         return _id
 
+    def remove(self, _id):
+        '''Delete the document with the given id.
+
+        @param _id: bson.objectid.ObjectId
+            The id of the document to delete.'''
+
+        self.collection.remove({'_id': _id})
+
     def all(self):
         '''Return an iterator over all documents of this collection.'''
 
