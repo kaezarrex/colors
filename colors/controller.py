@@ -49,4 +49,18 @@ class ColorsController(object):
         except Exception as e:
             logging.exception(e)
 
+    def change_block_frequency(self, block_id, frequency):
+        '''Change a block color, then notify listeners on the message queue.
+
+        @param block_id: bson.objectid.ObjectId
+            The id of the block whose color will be changed.
+        @param frequency: float
+            The number of seconds in between color changes.'''
+
+        try:
+            self.api.blocks.update(block_id, frequency=frequency)
+            self.mq.publish_frequency_changed(block_id, frequency)
+        except Exception as e:
+            logging.exception(e)
+
     

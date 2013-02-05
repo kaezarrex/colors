@@ -87,12 +87,14 @@
 
             deselectBlock();
 
+            $('input[name="frequency"]').removeAttr('disabled');
             $('input[type="range"]').removeAttr('disabled');
             $('#delete-block').removeAttr('disabled');
 
             selectedBlock = block;
 
             $('.block[data-block-id="' + blockId + '"]').addClass('selected');
+            setFrequency(block);
             setSliders(block);
         }
 
@@ -102,6 +104,7 @@
             }
             selectedBlock = null;
 
+            $('input[name="frequency"]').attr('disabled', 'disabled');
             $('input[type="range"]').attr('disabled', 'disabled');
             $('#delete-block').attr('disabled', 'disabled');
         }
@@ -142,6 +145,10 @@
             });
         }
 
+        function setFrequency(block) {
+            $('input[name="frequency"]').val(block.frequency);
+        }
+
         function setSliders(block) {
             $('input[name="r"]').val(block.r);
             $('input[name="g"]').val(block.g);
@@ -160,6 +167,26 @@
 
             $('div').find('[data-block-id="' + blockId + '"]').css({
                 'background': '#'+color
+            });
+        }
+
+        function changeBlockFrequency(blockId, frequency) {
+            var block = blocks[blockId];
+
+            block.frequency = frequency;
+
+            if (block === selectedBlock) {
+                setFrequency(block);
+            }
+        }
+
+        function postBlockFrequency(blockId, frequency) {
+            $.post('/blocks/' + blockId + '/frequency', {
+                    frequency: frequency
+                }, function(data) {
+                if (data.success) {
+                    console.log('Successfully changed the frequency of block ' + blockId);
+                }
             });
         }
 
@@ -201,6 +228,13 @@
             var blockId = $(this).data('block-id');
 
             selectBlock(blockId);
+        });
+
+        $('input[name="frequency"]').change(function() {
+            var blockId = selectedBlock.id,
+                frequency = $(this).val();
+
+            postBlockFrequency(blockId, frequency);
         });
 
         $('#delete-block').click(function() {
@@ -251,6 +285,12 @@
                 color = data.color;
 
                 changeBlockColor(blockId, color);
+
+            } else if ('change-frequency' === data.type) {
+                blockId = data.block_id;
+                frequency = data.frequency;
+
+                changeBlockFrequency(blockId, frequency);
 
             } else if ('block-created' === data.type) {
                 getBlock(data.block_id);

@@ -82,6 +82,21 @@ class MQ(object):
 
         self.publish_notification('change-color', notification)
 
+    def publish_frequency_changed(self, block_id, frequency):
+        '''Publish that a block's frequency has successfully been changed.
+
+        @param block_id: bson.ObjectId
+            The id of the block whose color will be changed.
+        @param frequency: float
+            The color change frequency.'''
+
+        notification = {
+            'block_id': str(block_id),
+            'frequency': frequency,
+        }
+
+        self.publish_notification('change-frequency', notification)
+
     def publish_block_created(self, block_id):
         '''Publish that a block has been created.
 

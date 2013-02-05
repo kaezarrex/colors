@@ -24,6 +24,7 @@ class ColorsScheduler(object):
         self.controller = ColorsController()
         self.block_queue = []
         self.block_ids = set()
+        self.frequency_changes = dict()
         self.lock = Lock()
         self.running = False
 
@@ -45,6 +46,24 @@ class ColorsScheduler(object):
             heapq.heappush(self.block_queue, (target_time, _id, frequency))
 
         self.lock.release()
+
+    def change_frequency(self, block_id, frequency):
+        '''Change the frequency for the block with id block_id.
+
+        @param block_id: bson.objectid.ObjectId
+            The id of the block whose frequency we will change.
+        @param frequency: float
+            The new frequency of the block.'''
+
+        self.frequency_changes[block_id] = frequency
+
+    def remove_block(self, block_id):
+        '''Stop scheduling color changes for the block with given id.
+
+        @param block_id: bson.objectid.ObjectId
+            The id of the block being removed.'''
+
+        self.block_ids.remove(block_id)
 
     def run(self):
         '''Enter an endless loop of scheduling requests to be made.'''
@@ -87,6 +106,11 @@ class ColorsScheduler(object):
             next_target_time = time.time() + frequency
             logging.debug('Scheduling next block change for %f', 
                 next_target_time)
+
+            # Look for frequency changes
+            if block_id in self.frequency_changes:
+                frequency = self.frequency_changes.pop(block_id)
+
             heapq.heappush(self.block_queue, 
                 (next_target_time, block_id, frequency))
 
@@ -134,8 +158,13 @@ class NotificationListener(object):
 
         notification = json.loads(body)
 
-        logging.info('Received notification: %s', notification['type'])
+        logging.debug('Received notification: %s', notification['type'])
 
+        if 'change-frequency' == notification['type']:
+            block_id = ObjectId(notification['block_id'])
+            frequency = notification['frequency']
+            scheduler.change_frequency(block_id, frequency)
+            
         if 'block-created' == notification['type']:
             block_id = ObjectId(notification['block_id'])
             block = self.controller.api.blocks.get(block_id)
@@ -143,8 +172,7 @@ class NotificationListener(object):
 
         if 'block-deleted' == notification['type']:
             block_id = ObjectId(notification['block_id'])
-            block = self.controller.api.blocks.get(block_id)
-            self.scheduler.remove_block(block)
+            self.scheduler.remove_block(block_id)
 
         ch.basic_ack(delivery_tag=method.delivery_tag)
 

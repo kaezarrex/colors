@@ -20,6 +20,7 @@ def format_block(block):
     return {
         'id': str(block['_id']),
         'color': block['color'],
+        'frequency': block['frequency'],
     }
 
 def validate_color():
@@ -102,6 +103,32 @@ def change_color(block_id):
     else:
         block_id = ObjectId(block_id)
         controller.change_block_color(block_id, color)
+
+        result['success'] = True
+
+    return jsonify(result)
+
+@app.route('/blocks/<block_id>/frequency', methods=('POST',))
+def change_frequency(block_id):
+    result = {
+        'success': False,
+        'errors': []
+    }
+
+    frequency = request.form.get('frequency')
+    valid = False
+    try:
+        frequency = float(frequency)
+        valid = True
+    except:
+        pass
+
+    if not valid:
+        result['errors'].append('Invalid frequency: %s' % frequency)
+
+    else:
+        block_id = ObjectId(block_id)
+        controller.change_block_frequency(block_id, frequency)
 
         result['success'] = True
 
