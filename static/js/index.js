@@ -46,6 +46,8 @@
                 html = '',
                 id, block;
 
+            deselectBlock();
+
             for (id in blocks) {
                 if (blocks.hasOwnProperty(id)) {
                     block = blocks[id];
@@ -203,6 +205,8 @@
 
         $('#delete-block').click(function() {
             postDeleteBlock();
+
+            return false;
         });
 
         $('input[type="range"]').change(function() {
