@@ -186,6 +186,8 @@
                 }, function(data) {
                 if (data.success) {
                     console.log('Successfully changed the frequency of block ' + blockId);
+                } else {
+                    console.error(data.errors);
                 }
             });
         }
@@ -208,6 +210,8 @@
             $.post('/blocks/' + selectedBlock.id + '/delete', function(data) {
                 if (data.success) {
                     console.log('Successfully deleted block ' + selectedBlock.id);
+                } else {
+                    console.error(data.errors);
                 }
             });
         }
@@ -259,6 +263,8 @@
                     function(data) {
                         if (data.success) {
                             console.log('Success changing color');
+                        } else {
+                            console.error(data.errors);
                         }
                     })
             }
@@ -275,7 +281,7 @@
         }
 
         ws.onmessage = function(message) {
-            console.log('Received a socket message');
+            console.debug('Received a socket message');
             console.dir(message);
 
             // Route the message
