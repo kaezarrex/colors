@@ -3,9 +3,14 @@
 import argparse
 import heapq
 import logging
+import json
+from threading import Lock, Thread
 import time
 
+from bson.objectid import ObjectId
+
 from colors.controller import ColorsController
+from colors.mq import EXCHANGE, NOTIFICATION_ROUTING_KEY
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--debug', action='store_true')
@@ -17,38 +22,61 @@ class ColorsScheduler(object):
         '''Create the RequestScheduler.'''
 
         self.controller = ColorsController()
+        self.block_queue = []
+        self.block_ids = set()
+        self.lock = Lock()
         self.running = False
+
+    def add_block(self, block):
+        '''Add a block to the collection of blocks whose color will be 
+        alternated.
+
+        @param block: dict
+            The block to add.'''
+
+        self.lock.acquire()
+
+        _id = block.get('_id')
+        frequency = block.get('frequency')
+
+        if frequency is not None:
+            self.block_ids.add(_id)
+            target_time = time.time() + frequency
+            heapq.heappush(self.block_queue, (target_time, _id, frequency))
+
+        self.lock.release()
 
     def run(self):
         '''Enter an endless loop of scheduling requests to be made.'''
 
         # Store the sleep times for blocks that have an update frequency set
-        intervals = {}
         for block in self.controller.api.blocks.all():
-            frequency = block.get('frequency')
-            if frequency is not None:
-                intervals[block['_id']] = frequency
+            self.add_block(block)
 
-        logging.info('%d blocks have an update frequency', len(intervals))
-
-        # Build up the priority queue
-        block_queue = list()
-        for _id, frequency in intervals.iteritems():
-            heapq.heappush(block_queue, (time.time() + frequency, _id))
+        logging.info('%d blocks have an update frequency', 
+            len(self.block_queue))
 
         self.running = True
         logging.info('Entering main schedule loop at %f', time.time())
         while self.running:
 
-            if not block_queue:
+            if not self.block_queue:
                 logging.debug('No items to schedule.')
-                time.sleep(5)
+                time.sleep(0.1)
                 continue
 
-            logging.debug('Scheduled changes: %r', block_queue)
+            logging.debug('Scheduled changes: %r', self.block_queue)
             
             # Get the next block to queue up
-            target_time, block_id = heapq.heappop(block_queue)
+            self.lock.acquire()
+            target_time, block_id, frequency = heapq.heappop(self.block_queue)
+            self.lock.release()
+
+            if block_id not in self.block_ids:
+                logging.info('Block %s no longer exists - removing from queue', 
+                    block_id)
+                continue
+
             logging.debug('Next block id: %s', block_id)
 
             # Compute the sleep time
@@ -56,27 +84,85 @@ class ColorsScheduler(object):
             logging.debug('Sleeping for %f seconds', sleep_time)
             time.sleep(sleep_time)
 
-            # Schedule another block change for this block
-            interval = intervals[block_id]
-            next_target_time = time.time() + interval
-            logging.debug('Scheduling next block change for %f', next_target_time)
-            heapq.heappush(block_queue, (next_target_time, block_id))
+            next_target_time = time.time() + frequency
+            logging.debug('Scheduling next block change for %f', 
+                next_target_time)
+            heapq.heappush(self.block_queue, 
+                (next_target_time, block_id, frequency))
 
             # Put the current block change on the queue
             logging.debug('Queueing up block %s', block_id)
             self.controller.mq.queue_color_change(block_id)
 
         logging.info('Stopped scheduling requests.')
-            
+
     def stop(self):
         '''Stop scheduling requests.'''
 
         self.running = False
+
+class NotificationListener(object):
+
+    def __init__(self, scheduler):
+        '''Create the notification listener.
+
+        @param schedule: ColorsScheduler
+            The scheduler that is scheduling color changes.'''
+
+        self.controller = ColorsController()
+        self.channel = self.controller.mq.get_channel()
+        self.scheduler = scheduler
+        
+        result = self.channel.queue_declare(exclusive=True)
+
+        # Bind the queue to the exchange
+        self.channel.queue_bind(
+            exchange=EXCHANGE, 
+            queue=result.method.queue, 
+            routing_key=NOTIFICATION_ROUTING_KEY)
+
+        # Listen for notifications
+        self.channel.basic_consume(self.process_notification, 
+            queue=result.method.queue, 
+            no_ack=False)
+
+    def process_notification(self, ch, method, properties, body):
+        '''Handle the event that a block has been added.
+
+        The arguments are part of AMQP and I don't know exactly what they all
+        contain.'''
+
+        notification = json.loads(body)
+
+        logging.info('Received notification: %s', notification['type'])
+
+        if 'block-created' == notification['type']:
+            block_id = ObjectId(notification['block_id'])
+            block = self.controller.api.blocks.get(block_id)
+            self.scheduler.add_block(block)
+
+        if 'block-deleted' == notification['type']:
+            block_id = ObjectId(notification['block_id'])
+            block = self.controller.api.blocks.get(block_id)
+            self.scheduler.remove_block(block)
+
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+
+    def run(self):
+        '''Start listening for MQ notifications.'''
+
+        self.channel.start_consuming()
+
 
 if args.debug:
     logging.basicConfig(level=logging.DEBUG)
 else:
     logging.basicConfig(level=logging.INFO)
 
-ColorsScheduler().run()
+scheduler = ColorsScheduler()
+scheduler_thread = Thread(target=scheduler.run)
+scheduler_thread.daemon = True
+scheduler_thread.start()
+
+NotificationListener(scheduler).run()
 

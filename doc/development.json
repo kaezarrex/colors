@@ -1,5 +1,5 @@
 {
-    "static_folder"    : "/home/tim/projects/colors/static",
+    "static_folder"    : "/Users/tim/dev/colors/static",
     "static_url_path"  : "/static",
-    "template_folder"  : "/home/tim/projects/colors/templates"
+    "template_folder"  : "/Users/tim/dev/colors/templates"
 }
