@@ -1,4 +1,6 @@
+from os import environ
 from os.path import abspath
+import urlparse
 
 from flask import Flask
 
@@ -15,7 +17,12 @@ def build_app(
 
     global app, controller
 
-    controller = ColorsController()
+    mq_url = environ.get('CLOUDAMQP_URL', 'amqp://guest:guest@localhost//')
+    url = urlparse.urlparse(mq_url)
+    mongo_uri = environ.get('MONGOHQ_URL', 'mongodb://localhost:27017/colors')
+    database = urlparse.urlparse(mongo_uri).path[1:]
+
+    controller = ColorsController(host=url.hostname, virtual_host=url.path[1:], username=url.username, password=url.password, mongo_uri=mongo_uri, database=database)
 
     params = dict()
 

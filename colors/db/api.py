@@ -5,7 +5,7 @@ from colors.db.block import BlockAPI
 class ColorsAPI(object):
     '''A class for abstracting away the database connection''' 
 
-    def __init__(self, host='localhost', port=27017, user=None, password=None, database='colors'):
+    def __init__(self, host='localhost', database='color'):
         '''Create a connection to mongoDB
 
            @param host : optional, str
@@ -19,12 +19,12 @@ class ColorsAPI(object):
            @param database : optional, str
                The name of the database to connect to, defaults to "colors"'''
 
-        connection = pymongo.Connection(host=host, port=port)
+        connection = pymongo.Connection(host=host)
         db = pymongo.database.Database(connection, database)
 
-        if user and password:
-            success = db.authenticate(user, password)
-            if not success:
-                raise Exception('could not authenticate with the db')
+        #if user and password:
+        #    success = db.authenticate(user, password)
+        #    if not success:
+        #        raise Exception('could not authenticate with the db')
 
         self.blocks = BlockAPI(self, db)

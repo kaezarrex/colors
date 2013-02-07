@@ -10,10 +10,15 @@ NOTIFICATION_ROUTING_KEY = 'colors.notifications'
 class MQ(object):
     '''A class for managing communication with the message queue.'''
 
-    def __init__(self, host='localhost'):
+    def __init__(self, host='localhost', virtual_host=None, username=None, password=None):
 
         self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host=host))
+            pika.ConnectionParameters(
+                host=host,
+                virtual_host=virtual_host,
+                credentials=pika.PlainCredentials(username=username, password=password)
+                )
+            )
 
         channel = self.get_channel()
 

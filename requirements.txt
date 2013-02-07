@@ -1,3 +1,4 @@
 Flask==0.9
+pika==0.9.9
 pymongo==2.3
 https://github.com/generictjohnson/verify/archive/master.tar.gz

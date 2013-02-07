@@ -6,14 +6,14 @@ from colors.mq import MQ
 class ColorsController(object):
     '''A class for grouping together database transactions and notifications.'''
 
-    def __init__(self, host='localhost'):
+    def __init__(self, host='localhost', virtual_host=None, username=None, password=None, mongo_uri='localhost', database='color'):
         '''Create the ColorsController.
 
         @param host: str
             The location of the database AND message queue.'''
 
-        self.api = ColorsAPI(host=host)
-        self.mq = MQ(host=host)
+        self.api = ColorsAPI(host=mongo_uri, database=database)
+        self.mq = MQ(host=host, virtual_host=virtual_host, username=username, password=password)
 
     def create_block(self, color, frequency=None):
         '''Create a block with the supplied color.
